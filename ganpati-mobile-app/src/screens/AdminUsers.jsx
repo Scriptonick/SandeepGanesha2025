@@ -37,20 +37,13 @@ const AdminUsers = () => {
   };
 
   const confirmAssignScratch = () => {
-    if (!selectedAvatar) {
-      alert('Please select an avatar!');
-      return;
-    }
-    
-    const result = assignScratchToUser(selectedUser.id, parseInt(selectedAvatar));
+    const result = assignScratchToUser(selectedUser.id);
     alert(result.message);
     
     if (result.success) {
       setShowAssignModal(false);
       setSelectedUser(null);
       setSelectedAvatar('');
-      // Refresh the page to show updated collections
-      window.location.reload();
     }
   };
 
@@ -113,7 +106,7 @@ const AdminUsers = () => {
                       onClick={() => handleAssignScratch(user)}
                       style={{ padding: '6px 12px', fontSize: '12px' }}
                     >
-                      Assign
+                      Give Scratch
                     </button>
                   </div>
                 </div>
@@ -166,25 +159,9 @@ const AdminUsers = () => {
             <div className="modal-title">Assign Avatar</div>
             <div className="modal-message">
               <p>Assign avatar to <strong>{selectedUser?.name}</strong></p>
-              <select 
-                value={selectedAvatar} 
-                onChange={(e) => setSelectedAvatar(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '8px',
-                  border: '2px solid #e9ecef',
-                  fontSize: '14px',
-                  marginTop: '15px'
-                }}
-              >
-                <option value="">Select an avatar...</option>
-                {avatars.map(avatar => (
-                  <option key={avatar.id} value={avatar.id}>
-                    {avatar.emoji} {avatar.name} - {avatar.location}
-                  </option>
-                ))}
-              </select>
+              <p style={{ marginTop: '15px', fontSize: '14px', color: '#6c757d' }}>
+                This will give the user a new scratch card that they can use immediately to try winning an avatar.
+              </p>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
               <button 
@@ -199,7 +176,7 @@ const AdminUsers = () => {
                 onClick={confirmAssignScratch}
                 style={{ flex: 1 }}
               >
-                Assign
+               Give Scratch Card
               </button>
             </div>
           </div>

@@ -204,44 +204,27 @@ export const GameProvider = ({ children }) => {
   const assignScratchToUser = (userId, avatarId) => {
     const newData = { ...gameData };
     
-    // Add to user collection
-    if (!newData.userCollections[userId]) {
-      newData.userCollections[userId] = [];
+    // Reset user's last scratch to allow immediate scratch
+    // This simulates giving them a scratch card
+    const userHistory = newData.scratchHistory[userId] || [];
+    if (userHistory.length > 0) {
+      // Set last scratch to more than 1 minute ago to allow immediate scratch
+      const lastEntry = userHistory[userHistory.length - 1];
+      const pastTime = new Date();
+      pastTime.setMinutes(pastTime.getMinutes() - 2);
+      lastEntry.date = pastTime.toISOString();
     }
     
-    // Check if user already has this avatar
-    if (newData.userCollections[userId].includes(avatarId)) {
-      return { success: false, message: 'User already has this avatar!' };
-    }
-    
-    // Check if avatar is available in inventory
-    if (newData.inventory[avatarId] <= 0) {
-      return { success: false, message: 'Avatar not available in inventory!' };
-    }
-    
-    newData.userCollections[userId].push(avatarId);
-    
-    // Reduce inventory
-    newData.inventory[avatarId]--;
-    
-    // Add to scratch history
+    // Add admin scratch card assignment to history
     if (!newData.scratchHistory[userId]) {
       newData.scratchHistory[userId] = [];
     }
-    newData.scratchHistory[userId].push({
-      date: new Date().toISOString(),
-      avatarId: avatarId,
-      won: true,
-      adminAssigned: true
-    });
     
     saveGameData(newData);
     
-    const avatar = avatars.find(a => a.id === avatarId);
     return { 
       success: true, 
-      message: `Successfully assigned ${avatar.name} to user!`,
-      avatar: avatar
+      message: `Successfully gave user a new scratch card! They can scratch immediately now.`
     };
   };
 

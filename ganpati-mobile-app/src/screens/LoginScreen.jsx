@@ -44,9 +44,12 @@ const LoginScreen = () => {
   };
 
   return (
-    <div className="screen" style={{ background: 'linear-gradient(135deg, #ff6600, #ffcc33)', minHeight: '100vh' }}>
+    <div className="screen" style={{ background: 'linear-gradient(135deg, var(--ganpati-saffron), var(--ganpati-gold))', minHeight: '100vh' }}>
       <div style={{ paddingTop: '60px', textAlign: 'center', marginBottom: '40px' }}>
         <div style={{ fontSize: '64px', marginBottom: '20px' }}>🕉️</div>
+        <div style={{ fontSize: '24px', marginBottom: '10px', color: 'white', opacity: 0.8 }}>
+          ॐ गं गणपतये नमः
+        </div>
         <h1 style={{ color: 'white', fontSize: '28px', fontWeight: 'bold', marginBottom: '10px' }}>
           Ganpati Collection Game
         </h1>
@@ -180,10 +183,11 @@ const LoginScreen = () => {
           <div style={{ 
             marginTop: '20px', 
             padding: '15px', 
-            background: 'linear-gradient(135deg, #ff6600, #ffcc33)', 
+            background: 'linear-gradient(135deg, var(--ganpati-temple), var(--ganpati-gold))', 
             borderRadius: '8px',
             textAlign: 'center',
-            color: 'white'
+            color: 'white',
+            border: '2px solid var(--ganpati-maroon)'
           }}>
             <p style={{ fontSize: '14px', fontWeight: 'bold', margin: '0 0 5px 0' }}>
               ⭐ Powered by Orion Stars ⭐
