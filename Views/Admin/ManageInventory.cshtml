@@ -1,0 +1,68 @@
+@model List<GanpatiFestivalGame.Models.AvatarInventory>
+@{
+    ViewData["Title"] = "Manage Inventory";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Avatar Inventory Management</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="inventoryTable">
+                <thead>
+                    <tr>
+                        <th>Avatar</th>
+                        <th>Name</th>
+                        <th>Location</th>
+                        <th>Current Quantity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inventory in Model)
+                    {
+                        <tr>
+                            <td>
+                                <img src="@inventory.GanpatiAvatar.ImageUrl" alt="@inventory.GanpatiAvatar.Name" 
+                                     class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+                            </td>
+                            <td>@inventory.GanpatiAvatar.Name</td>
+                            <td>@inventory.GanpatiAvatar.Location</td>
+                            <td>
+                                <span class="badge @(inventory.Quantity > 10 ? "bg-success" : inventory.Quantity > 0 ? "bg-warning" : "bg-danger")">
+                                    @inventory.Quantity
+                                </span>
+                            </td>
+                            <td>
+                                <form method="post" action="@Url.Action("UpdateInventory")" class="d-inline">
+                                    <input type="hidden" name="avatarId" value="@inventory.GanpatiAvatarId" />
+                                    <div class="input-group input-group-sm" style="width: 150px;">
+                                        <input type="number" name="quantity" value="@inventory.Quantity" 
+                                               class="form-control" min="0" max="1000" />
+                                        <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table th {
+        background-color: #f8f9fc;
+        border-color: #e3e6f0;
+    }
+    
+    .input-group-sm .form-control {
+        height: calc(1.5em + 0.5rem + 2px);
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+</style>
