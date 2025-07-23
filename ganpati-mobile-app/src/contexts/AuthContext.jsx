@@ -54,6 +54,7 @@ export const AuthProvider = ({ children }) => {
 
   const addUser = (userData) => {
     {
+    }
     // Check if email already exists
     const existingUser = demoUsers.find(u => u.email === userData.email);
     if (existingUser) {
