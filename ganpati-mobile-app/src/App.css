@@ -146,7 +146,7 @@ body {
 
 /* Scratch Card */
 .scratch-card {
-  background: linear-gradient(45deg, var(--ganpati-gold), var(--ganpati-yellow));
+  background: linear-gradient(45deg, #FFD700, #FFEB3B, #FFC107);
   border-radius: 20px;
   padding: 30px;
   text-align: center;
@@ -155,11 +155,14 @@ body {
   position: relative;
   overflow: hidden;
   margin: 20px 0;
+  border: 3px solid #FF8F00;
+  box-shadow: 0 8px 25px rgba(255, 193, 7, 0.4);
 }
 
 .scratch-card:hover {
-  transform: scale(1.02);
-  box-shadow: 0 10px 30px rgba(255, 165, 0, 0.3);
+  transform: scale(1.05);
+  box-shadow: 0 15px 40px rgba(255, 193, 7, 0.6);
+  border-color: #F57C00;
 }
 
 .scratch-card::before {
@@ -186,14 +189,15 @@ body {
 .scratch-title {
   font-size: 20px;
   font-weight: bold;
-  color: white;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  color: #8B4513;
+  text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
   margin-bottom: 5px;
 }
 
 .scratch-subtitle {
-  color: white;
-  opacity: 0.9;
+  color: #8B4513;
+  opacity: 0.8;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.6);
 }
 
 /* Countdown */

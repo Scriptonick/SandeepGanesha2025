@@ -15,32 +15,80 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Demo users for testing
-  const demoUsers = [
+  // Get users from localStorage or use defaults
+  const getStoredUsers = () => {
+    const stored = localStorage.getItem('ganpati_users');
+    return stored ? JSON.parse(stored) : [
+      {
+        id: 1,
+        name: 'Admin User',
+        email: 'admin@ganpati.com',
+        password: '123456',
+        role: 'admin'
+      },
+      {
+        id: 2,
+        name: 'John Doe',
+        email: 'user@test.com',
+        password: '123456',
+        role: 'user',
+        isBlocked: false
+      },
+      {
+        id: 3,
+        name: 'Jane Smith',
+        email: 'jane@test.com',
+        password: '123456',
+        role: 'user',
+        isBlocked: false
+      }
+    ];
+  };
+
+  const [demoUsers, setDemoUsers] = useState(getStoredUsers());
+
+  const saveUsers = (users) => {
+    setDemoUsers(users);
+    localStorage.setItem('ganpati_users', JSON.stringify(users));
+  };
+
+  const addUser = (userData) => {
     {
-      id: 1,
-      name: 'Admin User',
-      email: 'admin@ganpati.com',
-      password: '123456',
-      role: 'admin'
-    },
-    {
-      id: 2,
-      name: 'John Doe',
-      email: 'user@test.com',
-      password: '123456',
-      role: 'user',
-      isBlocked: false
-    },
-    {
-      id: 3,
-      name: 'Jane Smith',
-      email: 'jane@test.com',
-      password: '123456',
-      role: 'user',
-      isBlocked: false
+    // Check if email already exists
+    const existingUser = demoUsers.find(u => u.email === userData.email);
+    if (existingUser) {
+      return { success: false, error: 'Email already exists' };
     }
-  ];
+
+    const newUser = {
+      id: Math.max(...demoUsers.map(u => u.id)) + 1,
+      ...userData,
+      role: userData.role || 'user',
+      isBlocked: false
+    };
+
+    const updatedUsers = [...demoUsers, newUser];
+    saveUsers(updatedUsers);
+    return { success: true, user: newUser };
+  };
+
+  const removeUser = (userId) => {
+    const updatedUsers = demoUsers.filter(u => u.id !== userId);
+    saveUsers(updatedUsers);
+    return { success: true };
+  };
+
+  const updateUser = (userId, updates) => {
+    const updatedUsers = demoUsers.map(u => 
+      u.id === userId ? { ...u, ...updates } : u
+    );
+    saveUsers(updatedUsers);
+    return { success: true };
+  };
+
+  const getAllUsers = () => {
+    return demoUsers.filter(u => u.role === 'user');
+  };
 
   useEffect(() => {
     // Check for stored auth data
@@ -121,7 +169,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
-    logout
+    logout,
+    addUser,
+    removeUser,
+    updateUser,
+    getAllUsers
   };
 
   return (

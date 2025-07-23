@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 
 const AdminUsers = () => {
-  const { getLeaderboard, avatars, assignScratchToUser } = useGame();
+  const { assignScratchToUser } = useGame();
+  const { getAllUsers, addUser, removeUser, updateUser } = useAuth();
   const [blockedUsers, setBlockedUsers] = useState(new Set());
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedAvatar, setSelectedAvatar] = useState('');
+  const [newUserData, setNewUserData] = useState({ name: '', email: '', password: '' });
+  const [editUserData, setEditUserData] = useState({ name: '', email: '', password: '' });
   
-  const users = getLeaderboard();
+  const users = getAllUsers();
 
   const toggleUserBlock = (userId) => {
     const newBlockedUsers = new Set(blockedUsers);
@@ -43,7 +48,59 @@ const AdminUsers = () => {
     if (result.success) {
       setShowAssignModal(false);
       setSelectedUser(null);
-      setSelectedAvatar('');
+    }
+  };
+
+  const handleAddUser = () => {
+    if (!newUserData.name || !newUserData.email || !newUserData.password) {
+      alert('Please fill all fields');
+      return;
+    }
+
+    const result = addUser(newUserData);
+    if (result.success) {
+      alert('User added successfully!');
+      setShowAddModal(false);
+      setNewUserData({ name: '', email: '', password: '' });
+      window.location.reload(); // Refresh to show new user
+    } else {
+      alert(result.error);
+    }
+  };
+
+  const handleRemoveUser = (userId, userName) => {
+    if (window.confirm(`Are you sure you want to remove ${userName}? This action cannot be undone.`)) {
+      const result = removeUser(userId);
+      if (result.success) {
+        alert('User removed successfully!');
+        window.location.reload();
+      }
+    }
+  };
+
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setEditUserData({
+      name: user.name,
+      email: user.email,
+      password: user.password
+    });
+    setShowEditModal(true);
+  };
+
+  const confirmEditUser = () => {
+    if (!editUserData.name || !editUserData.email || !editUserData.password) {
+      alert('Please fill all fields');
+      return;
+    }
+
+    const result = updateUser(selectedUser.id, editUserData);
+    if (result.success) {
+      alert('User updated successfully!');
+      setShowEditModal(false);
+      setSelectedUser(null);
+      setEditUserData({ name: '', email: '', password: '' });
+      window.location.reload();
     }
   };
 
@@ -66,6 +123,13 @@ const AdminUsers = () => {
           <div className="card-title">
             📋 User List
           </div>
+          <button
+            className="btn btn-success"
+            onClick={() => setShowAddModal(true)}
+            style={{ padding: '8px 16px', fontSize: '14px' }}
+          >
+            ➕ Add User
+          </button>
         </div>
         
         <div>
@@ -94,11 +158,11 @@ const AdminUsers = () => {
                     </button>
                     
                     <button
-                      className="btn btn-secondary"
-                      onClick={() => resetUserProgress(user.id, user.name)}
+                      className="btn btn-warning"
+                      onClick={() => handleEditUser(user)}
                       style={{ padding: '6px 12px', fontSize: '12px' }}
                     >
-                      Reset
+                      Edit
                     </button>
                     
                     <button
@@ -107,6 +171,14 @@ const AdminUsers = () => {
                       style={{ padding: '6px 12px', fontSize: '12px' }}
                     >
                       Give Scratch
+                    </button>
+                    
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => handleRemoveUser(user.id, user.name)}
+                      style={{ padding: '6px 12px', fontSize: '12px' }}
+                    >
+                      Remove
                     </button>
                   </div>
                 </div>
@@ -177,6 +249,119 @@ const AdminUsers = () => {
                 style={{ flex: 1 }}
               >
                Give Scratch Card
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon">👤</div>
+            <div className="modal-title">Add New User</div>
+            <div style={{ textAlign: 'left', marginBottom: '20px' }}>
+              <div className="form-group">
+                <label className="form-label">Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={newUserData.name}
+                  onChange={(e) => setNewUserData({...newUserData, name: e.target.value})}
+                  placeholder="Enter full name"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={newUserData.email}
+                  onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={newUserData.password}
+                  onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                  placeholder="Enter password"
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowAddModal(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-success" 
+                onClick={handleAddUser}
+                style={{ flex: 1 }}
+              >
+                Add User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon">✏️</div>
+            <div className="modal-title">Edit User</div>
+            <div style={{ textAlign: 'left', marginBottom: '20px' }}>
+              <div className="form-group">
+                <label className="form-label">Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editUserData.name}
+                  onChange={(e) => setEditUserData({...editUserData, name: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={editUserData.email}
+                  onChange={(e) => setEditUserData({...editUserData, email: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  value={editUserData.password}
+                  onChange={(e) => setEditUserData({...editUserData, password: e.target.value})}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowEditModal(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-warning" 
+                onClick={confirmEditUser}
+                style={{ flex: 1 }}
+              >
+                Update User
               </button>
             </div>
           </div>
