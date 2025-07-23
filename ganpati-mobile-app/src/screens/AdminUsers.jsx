@@ -21,7 +21,7 @@ const AdminUsers = () => {
     if (newBlockedUsers.has(userId)) {
       newBlockedUsers.delete(userId);
     } else {
-      newBlockedUsers.add(userId);
+      //newBlockedUsers.add(userId);
     }
     setBlockedUsers(newBlockedUsers);
     
