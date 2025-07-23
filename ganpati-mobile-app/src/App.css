@@ -462,6 +462,50 @@ body {
   font-weight: bold;
 }
 
+.btn-outline:hover {
+  background: var(--ganpati-temple);
+  color: white;
+}
+
+/* Fix admin button colors */
+.admin-header .btn-outline {
+  border-color: white;
+  color: white;
+}
+
+.admin-header .btn-outline:hover {
+  background: white;
+  color: var(--ganpati-temple);
+}
+
+/* Ensure all buttons have proper contrast */
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-secondary {
+  color: white !important;
+}
+
+.btn-outline {
+  background: transparent !important;
+}
+
+/* Fix specific admin tool buttons */
+.card .btn-primary,
+.card .btn-success,
+.card .btn-danger,
+.card .btn-warning {
+  color: white !important;
+  text-shadow: none;
+}
+
+/* Fix scratch button specifically */
+.scratch-card .scratch-title,
+.scratch-card .scratch-subtitle {
+  color: white !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
 /* Forms */
 .form-group {
   margin-bottom: 20px;
