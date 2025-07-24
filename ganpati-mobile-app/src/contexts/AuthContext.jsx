@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import apiService from '../services/api';
+import { supabase, dbHelpers } from '../services/supabase';
 
 const AuthContext = createContext();
 
@@ -17,30 +17,55 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth data
-    const token = localStorage.getItem('ganpati_token');
-    const storedUser = localStorage.getItem('ganpati_user');
-    
-    if (token && storedUser) {
-      const userData = JSON.parse(storedUser);
-      apiService.setToken(token);
-      setUser(userData);
-      setIsAuthenticated(true);
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setUser({
+          id: session.user.id,
+          name: session.user.user_metadata.name || session.user.email,
+          email: session.user.email,
+          role: session.user.user_metadata.role || 'user'
+        });
+        setIsAuthenticated(true);
+      }
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          setUser({
+            id: session.user.id,
+            name: session.user.user_metadata.name || session.user.email,
+            email: session.user.email,
+            role: session.user.user_metadata.role || 'user'
+          });
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
     }
-    setLoading(false);
   }, []);
 
   const login = async (email, password) => {
     try {
-      const response = await apiService.login(email, password);
-      
-      if (!response.success) {
-        throw new Error(response.error);
-      }
+      const data = await dbHelpers.signIn(email, password);
 
-      setUser(response.user);
+      setUser({
+        id: data.user.id,
+        name: data.user.user_metadata.name || data.user.email,
+        email: data.user.email,
+        role: data.user.user_metadata.role || 'user'
+      });
       setIsAuthenticated(true);
-      localStorage.setItem('ganpati_user', JSON.stringify(response.user));
       
       return { success: true };
     } catch (error) {
@@ -50,15 +75,15 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      const response = await apiService.register(name, email, password);
-      
-      if (!response.success) {
-        throw new Error(response.error);
-      }
+      const data = await dbHelpers.signUp(email, password, name);
 
-      setUser(response.user);
+      setUser({
+        id: data.user.id,
+        name: name,
+        email: data.user.email,
+        role: 'user'
+      });
       setIsAuthenticated(true);
-      localStorage.setItem('ganpati_user', JSON.stringify(response.user));
       
       return { success: true };
     } catch (error) {
@@ -66,18 +91,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    apiService.logout();
-    localStorage.removeItem('ganpati_user');
-    localStorage.removeItem('ganpati_token');
+  const logout = async () => {
+    try {
+      await dbHelpers.signOut();
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   // Admin user management methods
   const addUser = async (userData) => {
     try {
-      const response = await apiService.addUser(userData);
+      await dbHelpers.addUser(userData);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -86,7 +113,7 @@ export const AuthProvider = ({ children }) => {
 
   const removeUser = async (userId) => {
     try {
-      await apiService.deleteUser(userId);
+      await dbHelpers.deleteUser(userId);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -95,7 +122,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = async (userId, updates) => {
     try {
-      await apiService.updateUser(userId, updates);
+      await dbHelpers.updateUser(userId, updates);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -104,7 +131,7 @@ export const AuthProvider = ({ children }) => {
 
   const getAllUsers = async () => {
     try {
-      return await apiService.getAdminUsers();
+      return await dbHelpers.getAdminUsers();
     } catch (error) {
       console.error('Get users error:', error);
       return [];

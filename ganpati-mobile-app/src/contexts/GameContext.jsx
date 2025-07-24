@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import apiService from '../services/api';
+import { dbHelpers, getAvatarEmoji } from '../services/supabase';
 
 const GameContext = createContext();
 
@@ -17,21 +17,6 @@ export const GameProvider = ({ children }) => {
   const [avatars, setAvatars] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Avatar emoji mapping
-  const getAvatarEmoji = (avatarId) => {
-    const emojiMap = {
-      1: '🕉️', // Mayureshwar
-      2: '🐘', // Siddhivinayak
-      3: '🙏', // Ballaleshwar
-      4: '💎', // Varadavinayak
-      5: '🌟', // Chintamani
-      6: '🏔️', // Girijatmaj
-      7: '⚡', // Vighnahar
-      8: '👑'  // Mahaganapati
-    };
-    return emojiMap[avatarId] || '🕉️';
-  };
-
   useEffect(() => {
     // Load avatars on mount
     loadAvatars();
@@ -39,13 +24,13 @@ export const GameProvider = ({ children }) => {
 
   const loadAvatars = async () => {
     try {
-      const avatarData = await apiService.getAvatars();
+      const avatarData = await dbHelpers.getAvatars();
       const avatarsWithEmojis = avatarData.map(avatar => ({
         ...avatar,
-        id: avatar.Id,
-        name: avatar.Name,
-        location: avatar.Location,
-        emoji: getAvatarEmoji(avatar.Id)
+        id: avatar.id,
+        name: avatar.name,
+        location: avatar.location,
+        emoji: getAvatarEmoji(avatar.id)
       }));
       setAvatars(avatarsWithEmojis);
     } catch (error) {
@@ -55,7 +40,7 @@ export const GameProvider = ({ children }) => {
 
   const getUserCollections = async (userId) => {
     try {
-      return await apiService.getUserCollections(userId);
+      return await dbHelpers.getUserCollections(userId);
     } catch (error) {
       console.error('Get collections error:', error);
       return [];
@@ -64,8 +49,7 @@ export const GameProvider = ({ children }) => {
 
   const canScratchToday = async (userId) => {
     try {
-      const response = await apiService.canScratchToday(userId);
-      return response.canScratch;
+      return await dbHelpers.canScratchToday(userId);
     } catch (error) {
       console.error('Can scratch error:', error);
       return false;
@@ -92,7 +76,7 @@ export const GameProvider = ({ children }) => {
 
   const scratchCard = async (userId) => {
     try {
-      return await apiService.scratchCard(userId);
+      return await dbHelpers.scratchCard(userId);
     } catch (error) {
       console.error('Scratch card error:', error);
       return { success: false, message: error.message };
@@ -101,7 +85,7 @@ export const GameProvider = ({ children }) => {
 
   const getLeaderboard = async () => {
     try {
-      return await apiService.getLeaderboard();
+      return await dbHelpers.getLeaderboard();
     } catch (error) {
       console.error('Get leaderboard error:', error);
       return [];
@@ -110,7 +94,7 @@ export const GameProvider = ({ children }) => {
 
   const updateInventory = async (avatarId, quantity) => {
     try {
-      await apiService.updateInventory(avatarId, quantity);
+      await dbHelpers.updateInventory(avatarId, quantity);
       return { success: true };
     } catch (error) {
       console.error('Update inventory error:', error);
@@ -120,7 +104,14 @@ export const GameProvider = ({ children }) => {
 
   const assignScratchToUser = async (userId) => {
     try {
-      return await apiService.assignScratchCard(userId);
+      // Reset user's last scratch date to allow immediate scratch
+      await dbHelpers.updateUser(userId, { 
+        last_scratch_date: new Date(Date.now() - 120000).toISOString() // 2 minutes ago
+      });
+      return { 
+        success: true, 
+        message: 'Successfully gave user a new scratch card! They can scratch immediately now.' 
+      };
     } catch (error) {
       console.error('Assign scratch error:', error);
       return { success: false, message: error.message };
@@ -129,7 +120,7 @@ export const GameProvider = ({ children }) => {
 
   const getStats = async () => {
     try {
-      return await apiService.getAdminStats();
+      return await dbHelpers.getAdminStats();
     } catch (error) {
       console.error('Get stats error:', error);
       return {
@@ -143,7 +134,7 @@ export const GameProvider = ({ children }) => {
 
   const getInventory = async () => {
     try {
-      return await apiService.getInventory();
+      return await dbHelpers.getInventory();
     } catch (error) {
       console.error('Get inventory error:', error);
       return [];
