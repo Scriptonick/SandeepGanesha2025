@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import apiService from '../services/api';
 
 const GameContext = createContext();
 
@@ -13,90 +14,72 @@ export const useGame = () => {
 
 export const GameProvider = ({ children }) => {
   const { user } = useAuth();
-  const [gameData, setGameData] = useState({
-    avatars: [],
-    userCollections: {},
-    inventory: {},
-    scratchHistory: {},
-    leaderboard: []
-  });
+  const [avatars, setAvatars] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Ashtavinayak Avatars
-  const avatars = [
-    { id: 1, name: 'Mayureshwar', location: 'Morgaon', emoji: '🕉️' },
-    { id: 2, name: 'Siddhivinayak', location: 'Siddhatek', emoji: '🐘' },
-    { id: 3, name: 'Ballaleshwar', location: 'Pali', emoji: '🙏' },
-    { id: 4, name: 'Varadavinayak', location: 'Mahad', emoji: '💎' },
-    { id: 5, name: 'Chintamani', location: 'Theur', emoji: '🌟' },
-    { id: 6, name: 'Girijatmaj', location: 'Lenyadri', emoji: '🏔️' },
-    { id: 7, name: 'Vighnahar', location: 'Ozar', emoji: '⚡' },
-    { id: 8, name: 'Mahaganapati', location: 'Ranjangaon', emoji: '👑' }
-  ];
+  // Avatar emoji mapping
+  const getAvatarEmoji = (avatarId) => {
+    const emojiMap = {
+      1: '🕉️', // Mayureshwar
+      2: '🐘', // Siddhivinayak
+      3: '🙏', // Ballaleshwar
+      4: '💎', // Varadavinayak
+      5: '🌟', // Chintamani
+      6: '🏔️', // Girijatmaj
+      7: '⚡', // Vighnahar
+      8: '👑'  // Mahaganapati
+    };
+    return emojiMap[avatarId] || '🕉️';
+  };
 
   useEffect(() => {
-    // Initialize game data
-    const storedData = localStorage.getItem('ganpati_game_data');
-    if (storedData) {
-      setGameData(JSON.parse(storedData));
-    } else {
-      // Initialize with default data
-      const initialData = {
-        avatars,
-        userCollections: {},
-        inventory: {
-          1: 15, // Mayureshwar - moderate availability
-          2: 8,  // Siddhivinayak - rare
-          3: 20, // Ballaleshwar - common
-          4: 12, // Varadavinayak - moderate
-          5: 5,  // Chintamani - very rare
-          6: 18, // Girijatmaj - common
-          7: 10, // Vighnahar - moderate
-          8: 3   // Mahaganapati - extremely rare
-        },
-        scratchHistory: {},
-        leaderboard: []
-      };
-      setGameData(initialData);
-      localStorage.setItem('ganpati_game_data', JSON.stringify(initialData));
-    }
+    // Load avatars on mount
+    loadAvatars();
   }, []);
 
-  const saveGameData = (newData) => {
-    setGameData(newData);
-    localStorage.setItem('ganpati_game_data', JSON.stringify(newData));
+  const loadAvatars = async () => {
+    try {
+      const avatarData = await apiService.getAvatars();
+      const avatarsWithEmojis = avatarData.map(avatar => ({
+        ...avatar,
+        id: avatar.Id,
+        name: avatar.Name,
+        location: avatar.Location,
+        emoji: getAvatarEmoji(avatar.Id)
+      }));
+      setAvatars(avatarsWithEmojis);
+    } catch (error) {
+      console.error('Load avatars error:', error);
+    }
   };
 
-  const getUserCollections = (userId) => {
-    return gameData.userCollections[userId] || [];
+  const getUserCollections = async (userId) => {
+    try {
+      return await apiService.getUserCollections(userId);
+    } catch (error) {
+      console.error('Get collections error:', error);
+      return [];
+    }
   };
 
-  const canScratchToday = (userId) => {
-    const userHistory = gameData.scratchHistory[userId] || [];
-    if (userHistory.length === 0) return true;
-    
-    // For testing: 1 minute cooldown instead of 24 hours
-    const lastScratch = userHistory[userHistory.length - 1];
-    const lastScratchTime = new Date(lastScratch.date);
-    const now = new Date();
-    const timeDiff = now - lastScratchTime;
-    const oneMinuteInMs = 60 * 1000;
-    
-    return timeDiff >= oneMinuteInMs;
+  const canScratchToday = async (userId) => {
+    try {
+      const response = await apiService.canScratchToday(userId);
+      return response.canScratch;
+    } catch (error) {
+      console.error('Can scratch error:', error);
+      return false;
+    }
   };
 
   const getTimeUntilNextScratch = (userId) => {
-    if (canScratchToday(userId)) return null;
-    
-    // For testing: 1 minute cooldown instead of 24 hours
-    const userHistory = gameData.scratchHistory[userId] || [];
-    const lastScratch = userHistory[userHistory.length - 1];
-    if (!lastScratch) return null;
-    
-    const nextScratchTime = new Date(lastScratch.date);
-    nextScratchTime.setMinutes(nextScratchTime.getMinutes() + 1);
+    // This is a simplified version - in a real app, you'd get this from the API
+    // For now, we'll use a 1-minute countdown for testing
+    const nextScratch = new Date();
+    nextScratch.setMinutes(nextScratch.getMinutes() + 1);
     
     const now = new Date();
-    const diff = nextScratchTime - now;
+    const diff = nextScratch - now;
     
     if (diff <= 0) return null;
     
@@ -108,145 +91,68 @@ export const GameProvider = ({ children }) => {
   };
 
   const scratchCard = async (userId) => {
-    if (!canScratchToday(userId)) {
-      return { success: false, message: 'Already scratched today!' };
+    try {
+      return await apiService.scratchCard(userId);
+    } catch (error) {
+      console.error('Scratch card error:', error);
+      return { success: false, message: error.message };
     }
-
-    const userCollections = getUserCollections(userId);
-    const userScratchCount = gameData.scratchHistory[userId]?.length || 0;
-    
-    const availableAvatars = avatars.filter(avatar => 
-      !userCollections.includes(avatar.id) && gameData.inventory[avatar.id] > 0
-    );
-
-    if (availableAvatars.length === 0) {
-      return { success: false, message: 'No avatars available!' };
-    }
-
-    // Filter out rare avatars for first 5 tries
-    let selectableAvatars = availableAvatars;
-    if (userScratchCount < 5) {
-      // Exclude Chintamani (id: 5) and Mahaganapati (id: 8) for first 5 tries
-      selectableAvatars = availableAvatars.filter(avatar => 
-        avatar.id !== 5 && avatar.id !== 8
-      );
-      
-      // If no common avatars available, allow rare ones
-      if (selectableAvatars.length === 0) {
-        selectableAvatars = availableAvatars;
-      }
-    }
-
-    // 70% chance to win for better testing experience
-    const isWon = Math.random() < 0.7;
-    const selectedAvatar = selectableAvatars[Math.floor(Math.random() * selectableAvatars.length)];
-
-    const newData = { ...gameData };
-    
-    // Add to scratch history
-    if (!newData.scratchHistory[userId]) {
-      newData.scratchHistory[userId] = [];
-    }
-    newData.scratchHistory[userId].push({
-      date: new Date().toISOString(),
-      avatarId: selectedAvatar.id,
-      won: isWon
-    });
-
-    if (isWon) {
-      // Add to user collection
-      if (!newData.userCollections[userId]) {
-        newData.userCollections[userId] = [];
-      }
-      newData.userCollections[userId].push(selectedAvatar.id);
-      
-      // Reduce inventory
-      newData.inventory[selectedAvatar.id]--;
-    }
-
-    saveGameData(newData);
-
-    return {
-      success: true,
-      won: isWon,
-      avatar: selectedAvatar,
-      message: isWon ? 'Congratulations! 🎉' : 'Better luck tomorrow! 😔'
-    };
   };
 
-  const getLeaderboard = () => {
-    const users = [
-      { id: 2, name: 'John Doe' },
-      { id: 3, name: 'Jane Smith' },
-      { id: 4, name: 'Mike Johnson' },
-      { id: 5, name: 'Sarah Wilson' },
-      { id: 6, name: 'David Brown' }
-    ];
+  const getLeaderboard = async () => {
+    try {
+      return await apiService.getLeaderboard();
+    } catch (error) {
+      console.error('Get leaderboard error:', error);
+      return [];
+    }
+  };
 
-    return users.map(user => {
-      const collections = getUserCollections(user.id);
+  const updateInventory = async (avatarId, quantity) => {
+    try {
+      await apiService.updateInventory(avatarId, quantity);
+      return { success: true };
+    } catch (error) {
+      console.error('Update inventory error:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const assignScratchToUser = async (userId) => {
+    try {
+      return await apiService.assignScratchCard(userId);
+    } catch (error) {
+      console.error('Assign scratch error:', error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const getStats = async () => {
+    try {
+      return await apiService.getAdminStats();
+    } catch (error) {
+      console.error('Get stats error:', error);
       return {
-        ...user,
-        collectedCount: collections.length,
-        totalAvatars: avatars.length,
-        completionPercentage: (collections.length / avatars.length) * 100
+        totalUsers: 0,
+        totalAvatars: 8,
+        totalCollections: 0,
+        todayScratches: 0
       };
-    }).sort((a, b) => b.collectedCount - a.collectedCount)
-      .map((user, index) => ({ ...user, rank: index + 1 }));
-  };
-
-  const updateInventory = (avatarId, quantity) => {
-    const newData = { ...gameData };
-    newData.inventory[avatarId] = quantity;
-    saveGameData(newData);
-  };
-
-  const assignScratchToUser = (userId, avatarId) => {
-    const newData = { ...gameData };
-    
-    // Reset user's last scratch to allow immediate scratch
-    // This simulates giving them a scratch card
-    const userHistory = newData.scratchHistory[userId] || [];
-    if (userHistory.length > 0) {
-      // Set last scratch to more than 1 minute ago to allow immediate scratch
-      const lastEntry = userHistory[userHistory.length - 1];
-      const pastTime = new Date();
-      pastTime.setMinutes(pastTime.getMinutes() - 2);
-      lastEntry.date = pastTime.toISOString();
     }
-    
-    // Add admin scratch card assignment to history
-    if (!newData.scratchHistory[userId]) {
-      newData.scratchHistory[userId] = [];
-    }
-    
-    saveGameData(newData);
-    
-    return { 
-      success: true, 
-      message: `Successfully gave user a new scratch card! They can scratch immediately now.`
-    };
   };
 
-  const getStats = () => {
-    const totalUsers = 5; // Demo data
-    const totalCollections = Object.values(gameData.userCollections).reduce((sum, collections) => sum + collections.length, 0);
-    const todayScratches = Object.values(gameData.scratchHistory).reduce((sum, history) => {
-      const today = new Date().toDateString();
-      return sum + history.filter(scratch => new Date(scratch.date).toDateString() === today).length;
-    }, 0);
-
-    return {
-      totalUsers,
-      totalAvatars: avatars.length,
-      totalCollections,
-      todayScratches
-    };
+  const getInventory = async () => {
+    try {
+      return await apiService.getInventory();
+    } catch (error) {
+      console.error('Get inventory error:', error);
+      return [];
+    }
   };
 
   const value = {
     avatars,
-    gameData,
+    loading,
     getUserCollections,
     canScratchToday,
     getTimeUntilNextScratch,
@@ -254,7 +160,8 @@ export const GameProvider = ({ children }) => {
     getLeaderboard,
     updateInventory,
     assignScratchToUser,
-    getStats
+    getStats,
+    getInventory
   };
 
   return (

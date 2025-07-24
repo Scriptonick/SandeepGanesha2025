@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiService from '../services/api';
 
 const AuthContext = createContext();
 
@@ -15,87 +16,14 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Get users from localStorage or use defaults
-  const getStoredUsers = () => {
-    const stored = localStorage.getItem('ganpati_users');
-    return stored ? JSON.parse(stored) : [
-      {
-        id: 1,
-        name: 'Admin User',
-        email: 'admin@ganpati.com',
-        password: '123456',
-        role: 'admin'
-      },
-      {
-        id: 2,
-        name: 'John Doe',
-        email: 'user@test.com',
-        password: '123456',
-        role: 'user',
-        isBlocked: false
-      },
-      {
-        id: 3,
-        name: 'Jane Smith',
-        email: 'jane@test.com',
-        password: '123456',
-        role: 'user',
-        isBlocked: false
-      }
-    ];
-  };
-
-  const [demoUsers, setDemoUsers] = useState(getStoredUsers());
-
-  const saveUsers = (users) => {
-    setDemoUsers(users);
-    localStorage.setItem('ganpati_users', JSON.stringify(users));
-  };
-
-  const addUser = (userData) => {
-    {
-    }
-    // Check if email already exists
-    const existingUser = demoUsers.find(u => u.email === userData.email);
-    if (existingUser) {
-      return { success: false, error: 'Email already exists' };
-    }
-
-    const newUser = {
-      id: Math.max(...demoUsers.map(u => u.id)) + 1,
-      ...userData,
-      role: userData.role || 'user',
-      isBlocked: false
-    };
-
-    const updatedUsers = [...demoUsers, newUser];
-    saveUsers(updatedUsers);
-    return { success: true, user: newUser };
-  };
-
-  const removeUser = (userId) => {
-    const updatedUsers = demoUsers.filter(u => u.id !== userId);
-    saveUsers(updatedUsers);
-    return { success: true };
-  };
-
-  const updateUser = (userId, updates) => {
-    const updatedUsers = demoUsers.map(u => 
-      u.id === userId ? { ...u, ...updates } : u
-    );
-    saveUsers(updatedUsers);
-    return { success: true };
-  };
-
-  const getAllUsers = () => {
-    return demoUsers.filter(u => u.role === 'user');
-  };
-
   useEffect(() => {
     // Check for stored auth data
+    const token = localStorage.getItem('ganpati_token');
     const storedUser = localStorage.getItem('ganpati_user');
-    if (storedUser) {
+    
+    if (token && storedUser) {
       const userData = JSON.parse(storedUser);
+      apiService.setToken(token);
       setUser(userData);
       setIsAuthenticated(true);
     }
@@ -104,27 +32,15 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // Simulate API call
-      const foundUser = demoUsers.find(u => u.email === email && u.password === password);
+      const response = await apiService.login(email, password);
       
-      if (!foundUser) {
-        throw new Error('Invalid credentials');
+      if (!response.success) {
+        throw new Error(response.error);
       }
 
-      if (foundUser.role === 'user' && foundUser.isBlocked) {
-        throw new Error('Your account has been blocked');
-      }
-
-      const userData = {
-        id: foundUser.id,
-        name: foundUser.name,
-        email: foundUser.email,
-        role: foundUser.role
-      };
-
-      setUser(userData);
+      setUser(response.user);
       setIsAuthenticated(true);
-      localStorage.setItem('ganpati_user', JSON.stringify(userData));
+      localStorage.setItem('ganpati_user', JSON.stringify(response.user));
       
       return { success: true };
     } catch (error) {
@@ -134,23 +50,15 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      // Check if user already exists
-      const existingUser = demoUsers.find(u => u.email === email);
-      if (existingUser) {
-        throw new Error('User already exists');
+      const response = await apiService.register(name, email, password);
+      
+      if (!response.success) {
+        throw new Error(response.error);
       }
 
-      // Simulate user creation
-      const newUser = {
-        id: Date.now(),
-        name,
-        email,
-        role: 'user'
-      };
-
-      setUser(newUser);
+      setUser(response.user);
       setIsAuthenticated(true);
-      localStorage.setItem('ganpati_user', JSON.stringify(newUser));
+      localStorage.setItem('ganpati_user', JSON.stringify(response.user));
       
       return { success: true };
     } catch (error) {
@@ -161,7 +69,46 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
+    apiService.logout();
     localStorage.removeItem('ganpati_user');
+    localStorage.removeItem('ganpati_token');
+  };
+
+  // Admin user management methods
+  const addUser = async (userData) => {
+    try {
+      const response = await apiService.addUser(userData);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const removeUser = async (userId) => {
+    try {
+      await apiService.deleteUser(userId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const updateUser = async (userId, updates) => {
+    try {
+      await apiService.updateUser(userId, updates);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const getAllUsers = async () => {
+    try {
+      return await apiService.getAdminUsers();
+    } catch (error) {
+      console.error('Get users error:', error);
+      return [];
+    }
   };
 
   const value = {
